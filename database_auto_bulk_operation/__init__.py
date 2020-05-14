@@ -80,7 +80,7 @@ class BaseBulkHelper(LoggerMixin, metaclass=abc.ABCMeta):
         self._threshold = threshold
         self._max_time_interval = max_time_interval
         self._is_print_log = is_print_log
-        self._to_be_request_queue = Queue(threshold)
+        self._to_be_done_queue = Queue(threshold)
         self._last_oprate_time = time.time()
         self._last_has_task_time = time.time()
         atexit.register(self._do_bulk_operation)  # 程序自动结束前执行注册的函数
@@ -90,31 +90,31 @@ class BaseBulkHelper(LoggerMixin, metaclass=abc.ABCMeta):
 
     def add_task(self, base_operation: Union[UpdateOne, InsertOne, RedisOperation, tuple, dict]):
         """添加单个需要执行的操作，程序自动聚合陈批次操作"""
-        self._to_be_request_queue.put(base_operation)
+        self._to_be_done_queue.put(base_operation)
 
     @keep_circulating(1, block=False, daemon=True)  # redis异常或网络异常，使其自动恢复。
     def __excute_bulk_operation_in_other_thread(self):
         while True:
-            if self._to_be_request_queue.qsize() >= self._threshold or time.time() > self._last_oprate_time + self._max_time_interval:
+            if self._to_be_done_queue.qsize() >= self._threshold or time.time() > self._last_oprate_time + self._max_time_interval:
                 self._do_bulk_operation()
             time.sleep(0.01)
 
     @keep_circulating(1, block=False, daemon=True)
     def __check_queue_size(self):
-        if self._to_be_request_queue.qsize() > 0:
+        if self._to_be_done_queue.qsize() > 0:
             self._last_has_task_time = time.time()
         if time.time() - self._last_has_task_time > 60:
             self.logger.info(
                 f'{self.middleware_opration_python_instance} 最近一次有任务的时间是 ： {time.strftime("%Y-%m-%d %H;%M:%S", time.localtime(self._last_has_task_time))}')
 
     def _do_bulk_operation(self):
-        if self._to_be_request_queue.qsize() > 0:
+        if self._to_be_done_queue.qsize() > 0:
             t_start = time.time()
             count = 0
             to_be_done_list = []
             for _ in range(self._threshold):
                 try:
-                    request = self._to_be_request_queue.get_nowait()
+                    request = self._to_be_done_queue.get_nowait()
                     count += 1
                     to_be_done_list.append(request)
                 except Empty:
@@ -161,8 +161,9 @@ class RedisBulkWriteHelper(BaseBulkHelper):
 
 
 class MysqlBulkWriteHelper(BaseBulkHelper):
-    """mysql批量插入，比自带的更方便操作非整除批次"""
-
+    """mysql批量插入，比自带的更方便操作非整除批次
+    """
+    
     def _bulk_operate_realize(self, to_be_done_list):
         self.middleware_opration_python_instance[0].executemany_rowcount(self.middleware_opration_python_instance[1],
                                                                          to_be_done_list)
