@@ -45,3 +45,12 @@ for p_id, value in place_brand_dict.items():
 if mongo_list:
     city_brand_new.bulk_write(mongo_list)
 ```
+
+## 上面这种代码是固定的从一个已知确定的字典中，把任务写到mongo，这样实现不难，但对未来未知时间的离散任务要批量插入就难了。
+
+```
+例如是你写了一个函数是插入mongo记录的，这个函数是被供给被别的地方调用，并不知道会什么时候调用和调用多少次你的mongo插入函数
+这种情况下做数组预切割，然后调用pymongo的bulk_write方法，那就不可能实现了。
+
+对于这种场景是最适合使用此包的自动批量聚合功能的。
+```
