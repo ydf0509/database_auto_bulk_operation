@@ -1,0 +1,8 @@
+README.md
+setup.py
+database_auto_bulk_operation/__init__.py
+database_auto_bulk_operation.egg-info/PKG-INFO
+database_auto_bulk_operation.egg-info/SOURCES.txt
+database_auto_bulk_operation.egg-info/dependency_links.txt
+database_auto_bulk_operation.egg-info/requires.txt
+database_auto_bulk_operation.egg-info/top_level.txt
