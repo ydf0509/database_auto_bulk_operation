@@ -18,6 +18,32 @@
 对于未知时间的离散任务能够自动批量聚合，这种情况下无法自己提前切割分组，使用此包的方式非常适合。
 
 """
+
+"""
+如果不使用自动批量聚合会造成到处重复写很多切割分组的代码，思维不缜密的对非整除批次的分组还会漏掉最后一部分余数的批次
+
+举个真实例子，以下是实现每批次插入1000个到mongo，自己要维护一个数组变量mongo_list，
+然后每次插入后清除数组，为了防止非整除，还要再在for循环以外插入一次。
+
+临时写一次两次还好，一个项目中写个几十次这样的类似重复逻辑场景的代码，就要吐血了。
+写代码的出发点是宁愿十分困难的搞一次，也不愿意不困难但是重复的麻烦几百次。
+
+mongo_list = []
+for p_id, value in place_brand_dict.items():
+    if not hotel_city.find_one({'_id': p_id}):
+        continue
+    val_list = []
+    for brand_item in value.keys():
+        value[brand_item]['star'] = star_dict[brand_item]['star']
+        val_list.append(value[brand_item])
+    mongo_list.append(UpdateOne({'_id': p_id}, {'$set': {'brands': val_list, 'place_id': p_id}}, upsert=True))
+    if len(mongo_list) == 1000:
+        city_brand_new.bulk_write(mongo_list)
+        mongo_list = []
+if mongo_list:
+    city_brand_new.bulk_write(mongo_list)
+"""
+
 import atexit
 from typing import Union, Tuple
 import abc
