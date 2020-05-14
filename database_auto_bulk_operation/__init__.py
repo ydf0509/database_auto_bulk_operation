@@ -44,7 +44,6 @@ if mongo_list:
     city_brand_new.bulk_write(mongo_list)
 """
 
-
 """
 ## 上面这种代码是固定的从一个已知确定的字典中，把任务写到mongo，这样实现不难，但对未来未知时间的离散任务要批量插入就难了。
 
@@ -55,7 +54,6 @@ if mongo_list:
 对于这种场景是最适合使用此包的自动批量聚合功能的。
 ```
 """
-
 
 import atexit
 from typing import Union, Tuple
@@ -202,7 +200,7 @@ class RedisBulkWriteHelper(BaseBulkHelper):
 class MysqlBulkWriteHelper(BaseBulkHelper):
     """mysql批量插入，比自带的更方便操作非整除批次
     """
-    
+
     def _bulk_operate_realize(self, to_be_done_list):
         self.middleware_opration_python_instance[0].executemany_rowcount(self.middleware_opration_python_instance[1],
                                                                          to_be_done_list)
@@ -224,13 +222,13 @@ class _Test(unittest.TestCase, LoggerMixin):
     # @unittest.skip
     def test_redis_bulk_write(self):
         with TimerContextManager():
-            # r = redis.Redis(password='123456')
-            redis_helper = RedisBulkWriteHelper(redis.Redis(), 2000)
+            r = redis.Redis()
+            redis_helper = RedisBulkWriteHelper(r, 2000)
             # redis_helper = RedisBulkWriteHelper(r, 100)  # 放在外面可以
             for i in range(100003):
                 # time.sleep(0.2)
                 # 也可以在这里无限实例化
-                redis_helper = RedisBulkWriteHelper(redis.Redis(), 2000)
+                redis_helper = RedisBulkWriteHelper(r, 2000)
                 redis_helper.add_task(RedisOperation('sadd', 'key_set', str(i)))
                 redis_helper.add_task(RedisOperation('lpush', 'key_list', str(i)))
 
